@@ -106,7 +106,12 @@
   <script>
     // Load full Ohio data
     fetch('/ohio-childcare.json')
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then(data => {
         const map = L.map('map').setView([40.0, -82.5], 7);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -218,11 +223,23 @@
       })
       .catch(err => {
         console.error('Failed to load Ohio data:', err);
+        // Initialize map even on error
         const map = L.map('map').setView([40.0, -82.5], 7);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
-        alert('Failed to load data. Please check console.');
+        
+        // Show error message
+        const errorDiv = L.control({position: 'topright'});
+        errorDiv.onAdd = () => {
+          const div = L.DomUtil.create('div', 'legend');
+          div.style.background = '#ffebee';
+          div.style.border = '2px solid #e6194B';
+          div.style.padding = '10px';
+          div.innerHTML = `<b>Error loading data</b><br/>${err.message}<br/>Check console for details.`;
+          return div;
+        };
+        errorDiv.addTo(map);
       });
   </script>
 </body>
