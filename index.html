@@ -3,291 +3,227 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Ohio Childcare Locator</title>
+  <title>Ohio Childcare Map</title>
+  <meta name="description" content="Find licensed, publicly funded childcare providers in Ohio — including subsidy acceptance, quality ratings, and inspection history. Data from ODJFS public records.">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       height: 100vh;
       overflow: hidden;
     }
-    #map { 
-      height: 100%; 
-      width: 100%; 
-    }
-    /* Top control bar */
-    .control-bar {
+    #map { height: 100%; width: 100%; }
+    .info-box {
       position: absolute;
       top: 10px;
       left: 10px;
       right: 10px;
-      z-index: 1000;
-      background: rgba(255, 255, 255, 0.95);
-      padding: 12px;
+      background: rgba(255, 255, 255, 0.92);
+      padding: 12px 16px;
       border-radius: 8px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-      max-width: 600px;
-    }
-    .control-bar h1 {
-      font-size: 1.4rem;
-      margin-bottom: 4px;
-      color: #2c3e50;
-    }
-    .control-bar p {
-      font-size: 0.9rem;
-      color: #7f8c8d;
-      margin-bottom: 8px;
-    }
-    /* Search & filters */
-    .search-box {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .search-box input {
-      flex: 1;
-      min-width: 200px;
-      padding: 8px 12px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 1rem;
-    }
-    .filter-buttons {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .filter-btn {
-      padding: 6px 12px;
-      border: 1px solid #999;
-      background: white;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.85rem;
-      transition: all 0.2s;
-    }
-    .filter-btn:hover {
-      background: #f0f0f0;
-    }
-    .filter-btn.active {
-      border-color: #3498db;
-      background: #ecf0f1;
-      font-weight: bold;
-    }
-    .filter-btn.center.active { background: #fadbd8; border-color: #e6194B; }
-    .filter-btn.home.active { background: #d5f5e3; border-color: #3cb44b; }
-    .filter-btn.school.active { background: #fef9e7; border-color: #ffe119; }
-    /* Stats footer */
-    .stats-footer {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      background: rgba(255,255,255,0.85);
-      padding: 6px 10px;
-      border-radius: 4px;
-      font-size: 0.85rem;
-      color: #555;
       z-index: 1000;
+      max-width: 800px;
     }
-    /* Legend */
+    .info-box h1 { 
+      font-size: 1.5rem; 
+      color: #2c3e50; 
+      margin-bottom: 4px; 
+    }
+    .info-box p { 
+      color: #555; 
+      font-size: 0.95rem; 
+      line-height: 1.4;
+    }
     .legend {
+      background: rgba(255,255,255,0.9);
       padding: 8px;
-      line-height: 18px;
-      color: #555;
-      background: rgba(255,255,255,0.85);
       border-radius: 4px;
+      font-size: 12px;
     }
     .legend i {
       width: 14px;
       height: 14px;
       float: left;
       margin-right: 6px;
-      opacity: 0.7;
       border-radius: 50%;
+      opacity: 0.85;
+    }
+    .star { 
+      color: #FFD700; 
+      font-size: 14px;
+      margin: 4px 0;
+    }
+    .subsidy-badge {
+      display: inline-block;
+      background: #e8f4f8;
+      color: #2c3e50;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      margin: 2px 4px 2px 0;
+      font-weight: 500;
+    }
+    .subsidy-badge.expired {
+      background: #f0f0f0;
+      color: #999;
+      text-decoration: line-through;
+    }
+    .popup-content {
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .popup-content b {
+      font-size: 15px;
+      color: #2c3e50;
+    }
+    .popup-content small {
+      color: #666;
+    }
+    .inspection-info {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid #eee;
+      font-size: 12px;
+      color: #666;
+    }
+    .inspection-info.compliant {
+      color: #3cb44b;
+    }
+    .inspection-info.non-compliant {
+      color: #e6194B;
     }
   </style>
 </head>
 <body>
+  <div class="info-box">
+    <h1>Ohio Childcare Map</h1>
+    <p>Find licensed providers that accept public subsidies (CCIU, PI, SP). Data from ODJFS public records. Updated: December 2025.</p>
+  </div>
   <div id="map"></div>
-  <div class="control-bar">
-    <h1>Ohio Childcare Locator</h1>
-    <p>Find licensed childcare centers, homes, and school-age programs</p>
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="Search by city, ZIP, or provider name..." />
-      <div class="filter-buttons">
-        <div class="filter-btn center active" data-type="Center">Center</div>
-        <div class="filter-btn home active" data-type="Home">Home</div>
-        <div class="filter-btn school active" data-type="School Age">School-Age</div>
-      </div>
-    </div>
-  </div>
-  <div class="stats-footer">
-    Showing <span id="providerCount">0</span> licensed providers in Ohio • Data: U.S. HHS (Q4 2025)
-  </div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // === CONFIG ===
-    const MAP_CENTER = [40.0, -82.5];
-    const MAP_ZOOM = 7;
-    
-    // === INIT MAP ===
-    const map = L.map('map').setView(MAP_CENTER, MAP_ZOOM);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-    
-    // === STATE ===
-    let allFeatures = [];
-    let markersLayer = L.layerGroup().addTo(map);
-    let activeFilters = new Set(['Center', 'Home', 'School Age']);
-    
-    // === LOAD DATA ===
-    // Try to load from external GeoJSON file first, fallback to sample data
-    fetch('data/ohio-childcare.geojson')
-      .then(res => {
-        if (res.ok) return res.json();
-        throw new Error('GeoJSON not found');
-      })
+    // Load full Ohio data
+    fetch('/ohio-childcare.json')
+      .then(response => response.json())
       .then(data => {
-        allFeatures = data.features;
-        renderMarkers();
-      })
-      .catch(() => {
-        // Fallback to sample data if GeoJSON file doesn't exist
-        console.log('Using sample data. Add data/ohio-childcare.geojson for full dataset.');
-        const sampleData = {
-          type: "FeatureCollection",
-          features: [
-            {
-              type: "Feature",
-              geometry: { type: "Point", coordinates: [-83.0007, 39.9612] },
-              properties: {
-                ProviderName: "Columbus Learning Center",
-                Address: "123 Main St",
-                City: "Columbus",
-                ZIP: "43215",
-                County: "Franklin",
-                Phone: "(614) 555-1234",
-                ProviderType: "Center",
-                Capacity: "85"
-              }
-            },
-            {
-              type: "Feature",
-              geometry: { type: "Point", coordinates: [-81.6944, 41.4993] },
-              properties: {
-                ProviderName: "Cleveland Family Childcare",
-                Address: "456 Oak Ave",
-                City: "Cleveland",
-                ZIP: "44115",
-                County: "Cuyahoga",
-                Phone: "(216) 555-6789",
-                ProviderType: "Home",
-                Capacity: "6"
-              }
-            },
-            {
-              type: "Feature",
-              geometry: { type: "Point", coordinates: [-84.5241, 39.1031] },
-              properties: {
-                ProviderName: "Cincinnati After-School Club",
-                Address: "789 Elm St",
-                City: "Cincinnati",
-                ZIP: "45202",
-                County: "Hamilton",
-                Phone: "(513) 555-4321",
-                ProviderType: "School Age",
-                Capacity: "40"
-              }
+        const map = L.map('map').setView([40.0, -82.5], 7);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        function getColor(type) {
+          return type === 'Center' ? '#e6194B' :
+                 type === 'Home' ? '#3cb44b' : '#0000ff';
+        }
+
+        function renderStars(rating) {
+          const num = parseInt(rating) || 0;
+          if (num < 1) return 'Not Rated';
+          return '★'.repeat(num) + '☆'.repeat(5 - num);
+        }
+
+        function formatContract(contract) {
+          const end = new Date(contract.endDate);
+          const today = new Date();
+          const expired = end < today;
+          const badgeClass = expired ? 'subsidy-badge expired' : 'subsidy-badge';
+          const status = expired ? ' (expired)' : '';
+          return `<span class="${badgeClass}">${contract.contractType}${status}</span>`;
+        }
+
+        L.geoJSON(data, {
+          pointToLayer: (feature, latlng) => {
+            return L.circleMarker(latlng, {
+              radius: 7,
+              fillColor: getColor(feature.properties.providerType),
+              color: "#000",
+              weight: 1,
+              opacity: 1,
+              fillOpacity: 0.85
+            });
+          },
+          onEachFeature: (feature, layer) => {
+            const p = feature.properties;
+            let popup = `<div class="popup-content">`;
+            popup += `<b>${p.providerName}</b><br/>`;
+            popup += `${p.address}, ${p.city}, OH ${p.zipCode}<br/>`;
+            popup += `County: ${p.county}<br/>`;
+            if (p.phoneNumber) {
+              popup += `📞 <a href="tel:${p.phoneNumber.replace(/\D/g,'')}">${p.phoneNumber}</a><br/>`;
             }
-          ]
+            popup += `License: ${p.licenseNumber} (${p.licenseStatus})<br/>`;
+            popup += `<div class="star">${renderStars(p.starRating)}</div>`;
+            popup += `Capacity: ${p.totalCapacity}<br/>`;
+            if (p.ageGroupsServed && p.ageGroupsServed.length > 0) {
+              popup += `Ages: ${p.ageGroupsServed.join(', ')}<br/>`;
+            }
+            if (p.contracts && p.contracts.length > 0) {
+              popup += `<br/><b>Publicly Funded Programs:</b><br/>`;
+              p.contracts.forEach(c => {
+                popup += formatContract(c);
+              });
+              popup += `<br/>`;
+            } else {
+              popup += `<br/><small>No active subsidy contracts</small><br/>`;
+            }
+            if (p.inspections && p.inspections.length > 0) {
+              const last = p.inspections[0];
+              const compliant = last.result === 'Compliant';
+              const inspectionClass = compliant ? 'inspection-info compliant' : 'inspection-info non-compliant';
+              popup += `<div class="${inspectionClass}">`;
+              popup += `<i>Last inspection:</i> ${last.date} – ${last.result}`;
+              if (last.violations && last.violations.length > 0) {
+                popup += `<br/>Violations: ${last.violations.join(', ')}`;
+              }
+              popup += `</div>`;
+            }
+            popup += `</div>`;
+            layer.bindPopup(popup);
+          }
+        }).addTo(map);
+
+        // Legend
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = () => {
+          const div = L.DomUtil.create('div', 'legend');
+          div.innerHTML = `
+            <b>Provider Type</b><br/>
+            <i style="background:#e6194B"></i> Center<br/>
+            <i style="background:#3cb44b"></i> Home<br/><br/>
+            <b>★ = Ohio Star Rating</b>
+          `;
+          return div;
         };
-        allFeatures = sampleData.features;
-        renderMarkers();
+        legend.addTo(map);
+
+        // Footer attribution
+        const footer = L.control({position: 'bottomleft'});
+        footer.onAdd = () => {
+          const div = L.DomUtil.create('div', 'legend');
+          div.innerHTML = `Data: Ohio ODJFS Public Records • childcaresearch.ohio.gov`;
+          return div;
+        };
+        footer.addTo(map);
+
+        // Stats counter
+        const stats = L.control({position: 'topright'});
+        stats.onAdd = () => {
+          const div = L.DomUtil.create('div', 'legend');
+          div.innerHTML = `<b>${data.features.length.toLocaleString()} Providers</b>`;
+          return div;
+        };
+        stats.addTo(map);
+      })
+      .catch(err => {
+        console.error('Failed to load Ohio data:', err);
+        const map = L.map('map').setView([40.0, -82.5], 7);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+        alert('Failed to load data. Please check console.');
       });
-    
-    // === HELPER: Create marker style ===
-    function getColor(type) {
-      if (type === 'Center') return '#e6194B';
-      if (type === 'Home') return '#3cb44b';
-      if (type === 'School Age') return '#ffe119';
-      return '#0000ff';
-    }
-    
-    // === RENDER MARKERS ===
-    function renderMarkers() {
-      markersLayer.clearLayers();
-      let count = 0;
-      
-      allFeatures.forEach(feature => {
-        const props = feature.properties;
-        const type = props.ProviderType;
-        
-        // Filtering
-        if (!activeFilters.has(type)) return;
-        
-        // Search filtering
-        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-        if (searchTerm) {
-          const searchable = (props.ProviderName + ' ' + props.City + ' ' + props.ZIP).toLowerCase();
-          if (!searchable.includes(searchTerm)) return;
-        }
-        
-        const latlng = L.latLng(feature.geometry.coordinates[1], feature.geometry.coordinates[0]);
-        const marker = L.circleMarker(latlng, {
-          radius: 7,
-          fillColor: getColor(type),
-          color: '#000',
-          weight: 1,
-          opacity: 1,
-          fillOpacity: 0.9
-        });
-        
-        let popupContent = `<b>${props.ProviderName}</b><br/>` +
-          `${props.Address}, ${props.City}, OH ${props.ZIP}<br/>` +
-          `<small>Type: ${type} • Capacity: ${props.Capacity || 'N/A'}</small><br/>`;
-        if (props.Phone) popupContent += `<a href="tel:${props.Phone.replace(/\D/g,'')}">📞 ${props.Phone}</a>`;
-        
-        marker.bindPopup(popupContent);
-        markersLayer.addLayer(marker);
-        count++;
-      });
-      
-      document.getElementById('providerCount').textContent = count.toLocaleString();
-    }
-    
-    // === EVENT LISTENERS ===
-    document.getElementById('searchInput').addEventListener('input', renderMarkers);
-    
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const type = e.target.dataset.type;
-        if (activeFilters.has(type)) {
-          activeFilters.delete(type);
-          e.target.classList.remove('active');
-        } else {
-          activeFilters.add(type);
-          e.target.classList.add('active');
-        }
-        renderMarkers();
-      });
-    });
-    
-    // === LEGEND ===
-    const legend = L.control({position: 'bottomright'});
-    legend.onAdd = function () {
-      const div = L.DomUtil.create('div', 'legend');
-      div.innerHTML = `
-        <div><i style="background:#e6194B"></i> Center</div>
-        <div><i style="background:#3cb44b"></i> Home</div>
-        <div><i style="background:#ffe119"></i> School-Age</div>
-      `;
-      return div;
-    };
-    legend.addTo(map);
   </script>
 </body>
 </html>
-
