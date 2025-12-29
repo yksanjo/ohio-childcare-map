@@ -2,7 +2,9 @@
 
 Interactive map of licensed childcare providers in Ohio, built with Leaflet and OpenStreetMap.
 
-🌐 **Live Site**: [View on Vercel](https://ohio-childcare-map.vercel.app)
+🌐 **Live Site**: [View on Vercel](https://ohio-childcare-map-repo-emi7hat7a-yoshi-kondos-projects.vercel.app)
+
+🔗 **Production URL**: https://ohio-childcare-map-repo-emi7hat7a-yoshi-kondos-projects.vercel.app
 
 ## Features
 
